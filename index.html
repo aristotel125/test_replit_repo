@@ -3780,48 +3780,39 @@ function drawText(ctx, width, height, slide) {
 
   const shouldShowTitle = !slide.noTitle && slide.title && slide.title.trim();
   
-if (shouldShowTitle) {
-  const titleFontSize = slide.titleSize * scaleFactor;
-  const titleLH = (typeof slide.titleLineHeight === 'number' && slide.titleLineHeight > 0) 
-    ? slide.titleLineHeight 
-    : 1.2;
-  
-  ctx.font = `${slide.titleItalic ? 'italic' : 'normal'} ${slide.titleBold ? 'bold' : 'normal'} ${titleFontSize}px '${slide.titleFont}', sans-serif`;
-  titleLines = wrapText(ctx, slide.title, contentWidth);
-  titleLineStep = titleFontSize * titleLH;
-  
-  // ✅ ИСПРАВЛЕНИЕ: убираем пустое пространство сверху первой строки и снизу последней
-  const titleFirstLineOffset = (titleLineStep - titleFontSize) / 2;
-  titleBlockHeight = titleLines.length * titleLineStep - 2 * titleFirstLineOffset;
-}
+  if (shouldShowTitle) {
+    const titleFontSize = slide.titleSize * scaleFactor;
+    const titleLH = (typeof slide.titleLineHeight === 'number' && slide.titleLineHeight > 0) 
+      ? slide.titleLineHeight 
+      : 1.2;
+    
+    ctx.font = `${slide.titleItalic ? 'italic' : 'normal'} ${slide.titleBold ? 'bold' : 'normal'} ${titleFontSize}px '${slide.titleFont}', sans-serif`;
+    titleLines = wrapText(ctx, slide.title, contentWidth);
+    titleLineStep = titleFontSize * titleLH;
+    titleBlockHeight = titleLines.length * titleLineStep;
+  }
 
-let textLines = [];
-let textLineStep = 0;
-let textBlockHeight = 0;
+  let textLines = [];
+  let textLineStep = 0;
+  let textBlockHeight = 0;
 
-if (slide.text && slide.text.trim()) {
-  const textFontSize = slide.textSize * scaleFactor;
-  const textLH = (typeof slide.textLineHeight === 'number' && slide.textLineHeight > 0)
-    ? slide.textLineHeight
-    : 1.5;
-  
-  ctx.font = `${slide.textItalic ? 'italic' : 'normal'} ${slide.textBold ? 'bold' : 'normal'} ${textFontSize}px '${slide.textFont}', sans-serif`;
-  textLines = wrapText(ctx, slide.text, contentWidth);
-  textLineStep = textFontSize * textLH;
-  
-  // ✅ ИСПРАВЛЕНИЕ: убираем пустое пространство сверху первой строки и снизу последней
-  const textFirstLineOffset = (textLineStep - textFontSize) / 2;
-  textBlockHeight = textLines.length * textLineStep - 2 * textFirstLineOffset;
-}
+  if (slide.text && slide.text.trim()) {
+    const textFontSize = slide.textSize * scaleFactor;
+    const textLH = (typeof slide.textLineHeight === 'number' && slide.textLineHeight > 0)
+      ? slide.textLineHeight
+      : 1.5;
+    
+    ctx.font = `${slide.textItalic ? 'italic' : 'normal'} ${slide.textBold ? 'bold' : 'normal'} ${textFontSize}px '${slide.textFont}', sans-serif`;
+    textLines = wrapText(ctx, slide.text, contentWidth);
+    textLineStep = textFontSize * textLH;
+    textBlockHeight = textLines.length * textLineStep;
+  }
 
-// Сразу после этого должен идти расчёт totalBlockHeight:
-const hasTitle = (titleLines.length > 0);
-const hasText = (textLines.length > 0);
-const totalBlockHeight = (hasTitle ? titleBlockHeight : 0)
-                       + (hasTitle && hasText ? gapBetween : 0)
-                       + (hasText ? textBlockHeight : 0);
-                       
- 
+  const hasTitle = (titleLines.length > 0);
+  const hasText = (textLines.length > 0);
+  const totalBlockHeight = (hasTitle ? titleBlockHeight : 0)
+                         + (hasTitle && hasText ? gapBetween : 0)
+                         + (hasText ? textBlockHeight : 0);
 
   let startY;
   if (vertical === 'top') {
@@ -3832,7 +3823,7 @@ const totalBlockHeight = (hasTitle ? titleBlockHeight : 0)
     startY = paddingTop + (contentHeight - totalBlockHeight) / 2;
   }
 
-  ctx.textBaseline = 'top';
+  ctx.textBaseline = 'alphabetic';
   let currentY = Math.round(startY);
 
   if (hasTitle) {
@@ -3841,9 +3832,7 @@ const totalBlockHeight = (hasTitle ? titleBlockHeight : 0)
       ? slide.titleLineHeight 
       : 1.2;
     
-    // ✅ КОМПЕНСАЦИЯ первой строки
-    const firstLineOffset = (titleLineStep - titleFontSize) / 2;
-    currentY += firstLineOffset;
+    currentY += titleFontSize;
     
     if (slide.textShadow) {
       ctx.shadowColor = slide.shadowColor || '#000000';
@@ -3872,7 +3861,7 @@ const totalBlockHeight = (hasTitle ? titleBlockHeight : 0)
       titleX = width / 2;
     }
 
-    const titleLineHeight = titleLineStep;
+    const titleLineHeight = titleFontSize * titleLH;
     for (const line of titleLines) {
       if (line !== '') {
         ctx.fillText(line, titleX, currentY);
@@ -3880,8 +3869,7 @@ const totalBlockHeight = (hasTitle ? titleBlockHeight : 0)
       currentY += titleLineHeight;
     }
     
-    // ✅ КОМПЕНСАЦИЯ после последней строки
-    currentY -= firstLineOffset;
+    currentY -= titleFontSize;
   }
 
   if (hasTitle && hasText) {
@@ -3894,9 +3882,7 @@ const totalBlockHeight = (hasTitle ? titleBlockHeight : 0)
       ? slide.textLineHeight
       : 1.5;
     
-    // ✅ КОМПЕНСАЦИЯ первой строки
-    const firstLineOffset = (textLineStep - textFontSize) / 2;
-    currentY += firstLineOffset;
+    currentY += textFontSize;
     
     if (slide.textShadow) {
       ctx.shadowColor = slide.shadowColor || '#000000';
@@ -3925,17 +3911,13 @@ const totalBlockHeight = (hasTitle ? titleBlockHeight : 0)
       textX = width / 2;
     }
 
-const textLineHeight = textLineStep;
-
+    const textLineHeight = textFontSize * textLH;
     for (const line of textLines) {
       if (line !== '') {
         ctx.fillText(line, textX, currentY);
       }
       currentY += textLineHeight;
     }
-    
-    // ✅ КОМПЕНСАЦИЯ после последней строки
-    currentY -= firstLineOffset;
   }
 
   ctx.shadowColor = 'transparent';
