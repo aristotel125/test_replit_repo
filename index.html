@@ -142,7 +142,7 @@
                                     
                                     <div class="slider-group">
                                         <label>Масштаб: <span id="scaleValue">20px</span></label>
-                                        <input type="range" class="slider" min="10" max="50" value="20" 
+                                        <input type="range" class="slider" min="60" max="240" value="66" 
                                                oninput="updatePatternScale(this.value)">
                                     </div>
                                 </div>
@@ -261,7 +261,7 @@
                                 class="slider" 
                                 id="titleSizeSlider"
                                 min="20" 
-                                max="60" 
+                                max="280" 
                                 value="32"
                                 oninput="updateTitleSize(this.value)">
                         </div>
@@ -321,7 +321,7 @@
                                 class="slider" 
                                 id="textSizeSlider"
                                 min="12" 
-                                max="32" 
+                                max="150" 
                                 value="16"
                                 oninput="updateTextSize(this.value)">
                         </div>
@@ -909,19 +909,40 @@
                 
         /* ---------- БАЗА ---------- */
 
-        .slide-preview{
-            flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 5px 20px;
-            background: #fafafa;
-            position: relative;
-            overflow: hidden;
-            transition: transform .35s ease, opacity .35s ease, max-height .35s ease, padding .35s ease;
-            transform-origin: top center;
-            will-change: transform, opacity;
-        }
+      .slide-preview{
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 5px 20px;
+    background: #fafafa;
+    position: relative;
+    overflow: visible;  /* Было hidden, делаем visible */
+    transition: transform .35s ease, opacity .35s ease, max-height .35s ease, padding .35s ease;
+    transform-origin: top center;
+    will-change: transform, opacity;
+}
+
+/* Добавьте wrapper для правильного отображения scaled canvas */
+.slide-preview::before {
+    content: '';
+    display: block;
+}
+
+/* Для формата 4:5 (1080×1350 scaled до 324×405) */
+.slide-canvas.ratio-4-5 {
+    margin: 0 auto;
+}
+
+/* Для формата 1:1 (1080×1080 scaled до 324×324) */
+.slide-canvas.ratio-1-1 {
+    margin: 0 auto;
+}
+
+/* Для формата 9:16 (1080×1920 scaled до ~303×540) */
+.slide-canvas.ratio-9-16 {
+    margin: 0 auto;
+}
 
         .nav-arrow{
             position: absolute;
@@ -960,31 +981,28 @@
             right: 10px; 
         }
 
-        .slide-canvas{
-            position: relative;
-            background: #fff;
-            box-shadow: 0 4px 12px rgba(0,0,0,.1);
-            border-radius: 8px;
-            overflow: hidden;
-            transition: transform .35s ease;
-            transform-origin: top center;
-        }
+       .slide-canvas{
+    position: relative;
+    background: #fff;
+    box-shadow: 0 4px 12px rgba(0,0,0,.1);
+    border-radius: 8px;
+    overflow: hidden;
+}
 
-        .slide-canvas.ratio-4-5{ 
-            width: 324px; 
-            height: 405px; 
-        }
+.slide-canvas.ratio-4-5{ 
+    width: 324px;
+    height: 405px;
+}
 
-        .slide-canvas.ratio-9-16{ 
-            width: 324px; 
-            height: 576px; 
-        }
+.slide-canvas.ratio-9-16{ 
+    width: 303px;
+    height: 540px;
+}
 
-        .slide-canvas.ratio-1-1{ 
-            width: 324px; 
-            height: 324px; 
-        }
-
+.slide-canvas.ratio-1-1{ 
+    width: 324px;
+    height: 324px;
+}
         .slide-background{
             position: absolute; 
             inset: 0;
@@ -1204,22 +1222,17 @@
             z-index: 1;
         }
 
-        .container.modal-open .slide-canvas{ 
-            transform: scale(.78) translateY(-16px); 
-        }
+   .container.modal-open .slide-canvas.ratio-4-5{ 
+    transform: scale(0.74) translateY(-16px);
+}
 
-        .container.modal-open .slide-canvas.ratio-4-5{ 
-            transform: scale(.74) translateY(-16px); 
-        }
+.container.modal-open .slide-canvas.ratio-1-1{ 
+    transform: scale(0.72) translateY(-16px);
+}
 
-        .container.modal-open .slide-canvas.ratio-1-1{ 
-            transform: scale(.72) translateY(-16px); 
-        }
-
-        .container.modal-open .slide-canvas.ratio-9-16{ 
-            transform: scale(.58) translateY(-14px); 
-        }
-
+.container.modal-open .slide-canvas.ratio-9-16{ 
+    transform: scale(0.58) translateY(-14px);
+}
         .container.modal-open .slide-navigation{ 
             pointer-events: none; 
             opacity: .6; 
@@ -2216,21 +2229,21 @@ function showWelcomeStep() {
 
 // === КОНСТАНТА МАСШТАБИРОВАНИЯ ===
 const PREVIEW_SCALE = 0.3;
-const PREVIEW_WIDTH = 324;
+const PREVIEW_WIDTH = 1080;
 
 let slides = [
     {
         title: 'Заголовок слайда',
         text: 'Это основной текст для вашего слайда. Здесь можно рассказать о чём-то важном.',
-        titleSize: 48,
-        textSize: 16,
+        titleSize: 106,
+        textSize: 53,
         bgColor: '#ffffff',
         bgImage: null,
         textColor: '#000000',
         titleColor: '#000000',
         pattern: null,
         patternOpacity: 0.3,
-        patternScale: 20,
+        patternScale: 66,
         isTitle: true,
         noTitle: false,
         titleFont: 'Montserrat',
@@ -2457,15 +2470,15 @@ function makeDefaultSlide() {
   return {
     title: 'Заголовок слайда',
     text: 'Это основной текст для вашего слайда.',
-    titleSize: 48,
-    textSize: 16,
+    titleSize: 106,
+    textSize: 53,
     bgColor: '#ffffff',
     bgImage: null,
     textColor: '#000000',
     titleColor: '#000000',
     pattern: null,
     patternOpacity: 0.3,
-    patternScale: 20,
+    patternScale: 66,
     isTitle: true,
     noTitle: false,
     titleFont: 'Montserrat',
@@ -2630,7 +2643,7 @@ function addSlide() {
         text: '',
         isTitle: false,
         noTitle: false,
-        titleSize: 32,
+        titleSize: 106,
         titleColor: lastSlide.titleColor || '#000000',
         contentAlignment: { ...lastSlide.contentAlignment },
         titleAlignment: { ...lastSlide.titleAlignment },
@@ -3703,7 +3716,7 @@ async function slideToImage(slideIndex) {
 
 function drawPattern(ctx, width, height, slide) {
     const pattern = patterns[slide.pattern];
-    const scale = slide.patternScale * (width / PREVIEW_WIDTH);
+    const scale = slide.patternScale;
     
     ctx.save();
     ctx.globalAlpha = slide.patternOpacity;
@@ -3767,16 +3780,14 @@ function drawOverlay(ctx, width, height, slide) {
 }
 
 function drawText(ctx, width, height, slide) {
-  const scaleFactor = width / PREVIEW_WIDTH;
-  
   const vertical = slide.contentAlignment?.vertical || 'middle';
   const titleHorizontal = slide.titleAlignment?.horizontal || 'center';
   const textHorizontal = slide.textAlignment?.horizontal || 'left';
 
-  const paddingTop = slide.paddingTop * scaleFactor;
-  const paddingBottom = slide.paddingBottom * scaleFactor;
-  const paddingLeft = slide.paddingLeft * scaleFactor;
-  const paddingRight = slide.paddingRight * scaleFactor;
+  const paddingTop = slide.paddingTop;
+  const paddingBottom = slide.paddingBottom;
+  const paddingLeft = slide.paddingLeft;
+  const paddingRight = slide.paddingRight;
 
   const contentWidth = width - paddingLeft - paddingRight;
   const contentHeight = height - paddingTop - paddingBottom;
@@ -3785,12 +3796,12 @@ function drawText(ctx, width, height, slide) {
   let titleFontSize = 0;
   let titleLineHeight = 0;
   let titleBlockHeight = 0;
-  const gapBetween = 16 * scaleFactor;
+  const gapBetween = 53;
 
   const shouldShowTitle = !slide.noTitle && slide.title && slide.title.trim();
   
   if (shouldShowTitle) {
-    titleFontSize = slide.titleSize * scaleFactor;
+    titleFontSize = slide.titleSize;
     const titleLH = (typeof slide.titleLineHeight === 'number' && slide.titleLineHeight > 0) 
       ? slide.titleLineHeight 
       : 1.2;
@@ -3807,7 +3818,7 @@ function drawText(ctx, width, height, slide) {
   let textBlockHeight = 0;
 
   if (slide.text && slide.text.trim()) {
-    textFontSize = slide.textSize * scaleFactor;
+    textFontSize = slide.textSize;
     const textLH = (typeof slide.textLineHeight === 'number' && slide.textLineHeight > 0)
       ? slide.textLineHeight
       : 1.5;
@@ -3839,9 +3850,9 @@ function drawText(ctx, width, height, slide) {
   if (hasTitle) {
     if (slide.textShadow) {
       ctx.shadowColor = slide.shadowColor || '#000000';
-      ctx.shadowBlur = (slide.shadowBlur || 4) * scaleFactor;
-      ctx.shadowOffsetX = (slide.shadowOffset || 2) * scaleFactor;
-      ctx.shadowOffsetY = (slide.shadowOffset || 2) * scaleFactor;
+      ctx.shadowBlur = slide.shadowBlur || 4;
+      ctx.shadowOffsetX = slide.shadowOffset || 2;
+      ctx.shadowOffsetY = slide.shadowOffset || 2;
     } else {
       ctx.shadowColor = 'transparent';
       ctx.shadowBlur = 0;
@@ -3879,9 +3890,9 @@ function drawText(ctx, width, height, slide) {
   if (hasText) {
     if (slide.textShadow) {
       ctx.shadowColor = slide.shadowColor || '#000000';
-      ctx.shadowBlur = (slide.shadowBlur || 4) * scaleFactor;
-      ctx.shadowOffsetX = (slide.shadowOffset || 2) * scaleFactor;
-      ctx.shadowOffsetY = (slide.shadowOffset || 2) * scaleFactor;
+      ctx.shadowBlur = slide.shadowBlur || 4;
+      ctx.shadowOffsetX = slide.shadowOffset || 2;
+      ctx.shadowOffsetY = slide.shadowOffset || 2;
     } else {
       ctx.shadowColor = 'transparent';
       ctx.shadowBlur = 0;
@@ -3917,9 +3928,11 @@ function drawText(ctx, width, height, slide) {
   ctx.shadowOffsetX = 0;
   ctx.shadowOffsetY = 0;
 }
+
 function renderSlide() {
     const slide = slides[currentSlide];
     const canvas = document.getElementById('slideCanvas');
+    const scale = canvas.offsetWidth / 1080;
     const bg = document.getElementById('slideBackground');
     const pattern = document.getElementById('slidePattern');
     const overlay = document.getElementById('slideOverlay');
@@ -3937,14 +3950,14 @@ function renderSlide() {
         bg.style.backgroundColor = slide.bgColor;
     }
 
-    if (slide.pattern !== null) {
-        const patternData = patterns[slide.pattern];
-        if (patternData && patternData.css) {
-            pattern.style.backgroundImage = patternData.css;
-            pattern.style.color = slide.textColor;
-            pattern.style.opacity = slide.patternOpacity;
-            pattern.style.backgroundSize = `${slide.patternScale}px ${slide.patternScale}px`;
-            pattern.style.display = 'block';
+   if (slide.pattern !== null) {
+    const patternData = patterns[slide.pattern];
+    if (patternData && patternData.css) {
+        pattern.style.backgroundImage = patternData.css;
+        pattern.style.color = slide.textColor;
+        pattern.style.opacity = slide.patternOpacity;
+        pattern.style.backgroundSize = `${slide.patternScale * scale}px ${slide.patternScale * scale}px`;
+        pattern.style.display = 'block';
         } else {
             pattern.style.display = 'none';
         }
@@ -3968,11 +3981,10 @@ function renderSlide() {
         'bottom': 'flex-end'
     }[vertical] || 'center';
 
-    content.style.alignItems = 'stretch';
-    content.style.paddingTop = slide.paddingTop + 'px';
-    content.style.paddingBottom = slide.paddingBottom + 'px';
-    content.style.paddingLeft = slide.paddingLeft + 'px';
-    content.style.paddingRight = slide.paddingRight + 'px';
+   content.style.paddingTop = (slide.paddingTop * scale) + 'px';
+content.style.paddingBottom = (slide.paddingBottom * scale) + 'px';
+content.style.paddingLeft = (slide.paddingLeft * scale) + 'px';
+content.style.paddingRight = (slide.paddingRight * scale) + 'px';
 
     const shouldShowTitle = !slide.noTitle && slide.title && slide.title.trim();
     const titleHorizontal = slide.titleAlignment?.horizontal || 'center';
@@ -3980,7 +3992,9 @@ function renderSlide() {
     if (shouldShowTitle) {
         title.style.display = 'block';
         title.textContent = slide.title;
-        title.style.fontSize = `${slide.titleSize}px`;
+title.style.fontSize = `${slide.titleSize * scale}px`; // С scale
+    title.style.color = slide.titleColor || '#000000';
+
         title.style.color = slide.titleColor || '#000000';
         title.style.fontFamily = `'${slide.titleFont}', sans-serif`;
         title.style.fontWeight = slide.titleBold ? '700' : '400';
@@ -3988,6 +4002,7 @@ function renderSlide() {
         title.style.lineHeight = slide.titleLineHeight;
         title.style.whiteSpace = 'pre-wrap';
         title.style.textAlign = titleHorizontal;
+        title.style.marginBottom = `${53 * scale}px`; // Добавь эту строку
         
     } else {
         title.style.display = 'none';
@@ -3995,9 +4010,9 @@ function renderSlide() {
 
     const textHorizontal = slide.textAlignment?.horizontal || 'left';
     if (slide.text && slide.text.trim()) {
-        text.style.display = 'block';
-        text.textContent = slide.text;
-        text.style.fontSize = `${slide.textSize}px`;
+    text.style.display = 'block';
+    text.textContent = slide.text;
+    text.style.fontSize = `${slide.textSize * scale}px`; // С scale
         text.style.color = slide.textColor;
         text.style.fontFamily = `'${slide.textFont}', sans-serif`;
         text.style.fontWeight = slide.textBold ? '700' : '400';
@@ -4302,15 +4317,15 @@ function parseImportText(text) {
         const newSlide = {
             title: title || 'Заголовок слайда',
             text: bodyText || '',
-            titleSize: 32,
-            textSize: 16,
+            titleSize: 106,
+            textSize: 53,
             bgColor: '#ffffff',
             bgImage: null,
             textColor: '#000000',
             titleColor: '#000000',
             pattern: null,
             patternOpacity: 0.3,
-            patternScale: 20,
+            patternScale: 66,
             isTitle: isFirstSlide,
             noTitle: false,
             titleFont: 'Montserrat',
