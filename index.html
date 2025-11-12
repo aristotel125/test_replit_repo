@@ -3623,20 +3623,28 @@ function getExportDimensions() {
 }
 
 async function slideToImage(slideIndex) {
+  // Ждём загрузки шрифтов
+  await document.fonts.ready;
+  
   return new Promise((resolve, reject) => {
     const slide = slides[slideIndex];
     const dims = getExportDimensions();
-    const dpr = Math.max(1, Math.min(window.devicePixelRatio || 1, 3));
+    const dpr = 1;  // Фиксированный DPR для точного совпадения
 
     const canvas = document.createElement('canvas');
-    canvas.width = Math.round(dims.width * dpr);
-    canvas.height = Math.round(dims.height * dpr);
+    canvas.width = dims.width;
+    canvas.height = dims.height;
     canvas.style.width = dims.width + 'px';
     canvas.style.height = dims.height + 'px';
 
-    const ctx = canvas.getContext('2d');
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const ctx = canvas.getContext('2d', { 
+      alpha: true,
+      desynchronized: false,
+      willReadFrequently: false
+    });
+    ctx.setTransform(1, 0, 0, 1, 0, 0);  
     ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
 
     const paintBackground = () => {
       ctx.fillStyle = slide.bgColor;
@@ -3774,38 +3782,40 @@ function drawText(ctx, width, height, slide) {
   const contentHeight = height - paddingTop - paddingBottom;
 
   let titleLines = [];
-  let titleLineStep = 0;
+  let titleFontSize = 0;
+  let titleLineHeight = 0;
   let titleBlockHeight = 0;
   const gapBetween = 16 * scaleFactor;
 
   const shouldShowTitle = !slide.noTitle && slide.title && slide.title.trim();
   
   if (shouldShowTitle) {
-    const titleFontSize = slide.titleSize * scaleFactor;
+    titleFontSize = slide.titleSize * scaleFactor;
     const titleLH = (typeof slide.titleLineHeight === 'number' && slide.titleLineHeight > 0) 
       ? slide.titleLineHeight 
       : 1.2;
     
     ctx.font = `${slide.titleItalic ? 'italic' : 'normal'} ${slide.titleBold ? 'bold' : 'normal'} ${titleFontSize}px '${slide.titleFont}', sans-serif`;
     titleLines = wrapText(ctx, slide.title, contentWidth);
-    titleLineStep = titleFontSize * titleLH;
-    titleBlockHeight = titleLines.length * titleLineStep;
+    titleLineHeight = titleFontSize * titleLH;
+    titleBlockHeight = titleLines.length * titleLineHeight;
   }
 
   let textLines = [];
-  let textLineStep = 0;
+  let textFontSize = 0;
+  let textLineHeight = 0;
   let textBlockHeight = 0;
 
   if (slide.text && slide.text.trim()) {
-    const textFontSize = slide.textSize * scaleFactor;
+    textFontSize = slide.textSize * scaleFactor;
     const textLH = (typeof slide.textLineHeight === 'number' && slide.textLineHeight > 0)
       ? slide.textLineHeight
       : 1.5;
     
     ctx.font = `${slide.textItalic ? 'italic' : 'normal'} ${slide.textBold ? 'bold' : 'normal'} ${textFontSize}px '${slide.textFont}', sans-serif`;
     textLines = wrapText(ctx, slide.text, contentWidth);
-    textLineStep = textFontSize * textLH;
-    textBlockHeight = textLines.length * textLineStep;
+    textLineHeight = textFontSize * textLH;
+    textBlockHeight = textLines.length * textLineHeight;
   }
 
   const hasTitle = (titleLines.length > 0);
@@ -3823,17 +3833,10 @@ function drawText(ctx, width, height, slide) {
     startY = paddingTop + (contentHeight - totalBlockHeight) / 2;
   }
 
-  ctx.textBaseline = 'alphabetic';
+  ctx.textBaseline = 'top';
   let currentY = Math.round(startY);
 
   if (hasTitle) {
-    const titleFontSize = slide.titleSize * scaleFactor;
-    const titleLH = (typeof slide.titleLineHeight === 'number' && slide.titleLineHeight > 0) 
-      ? slide.titleLineHeight 
-      : 1.2;
-    
-    currentY += titleFontSize;
-    
     if (slide.textShadow) {
       ctx.shadowColor = slide.shadowColor || '#000000';
       ctx.shadowBlur = (slide.shadowBlur || 4) * scaleFactor;
@@ -3861,15 +3864,12 @@ function drawText(ctx, width, height, slide) {
       titleX = width / 2;
     }
 
-    const titleLineHeight = titleFontSize * titleLH;
     for (const line of titleLines) {
       if (line !== '') {
         ctx.fillText(line, titleX, currentY);
       }
       currentY += titleLineHeight;
     }
-    
-    currentY -= titleFontSize;
   }
 
   if (hasTitle && hasText) {
@@ -3877,13 +3877,6 @@ function drawText(ctx, width, height, slide) {
   }
 
   if (hasText) {
-    const textFontSize = slide.textSize * scaleFactor;
-    const textLH = (typeof slide.textLineHeight === 'number' && slide.textLineHeight > 0)
-      ? slide.textLineHeight
-      : 1.5;
-    
-    currentY += textFontSize;
-    
     if (slide.textShadow) {
       ctx.shadowColor = slide.shadowColor || '#000000';
       ctx.shadowBlur = (slide.shadowBlur || 4) * scaleFactor;
@@ -3911,7 +3904,6 @@ function drawText(ctx, width, height, slide) {
       textX = width / 2;
     }
 
-    const textLineHeight = textFontSize * textLH;
     for (const line of textLines) {
       if (line !== '') {
         ctx.fillText(line, textX, currentY);
@@ -3925,7 +3917,6 @@ function drawText(ctx, width, height, slide) {
   ctx.shadowOffsetX = 0;
   ctx.shadowOffsetY = 0;
 }
-
 function renderSlide() {
     const slide = slides[currentSlide];
     const canvas = document.getElementById('slideCanvas');
