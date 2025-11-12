@@ -142,7 +142,7 @@
                                     
                                     <div class="slider-group">
                                         <label>Масштаб: <span id="scaleValue">20px</span></label>
-                                        <input type="range" class="slider" min="60" max="240" value="66" 
+                                        <input type="range" class="slider" min="25" max="125" value="66" 
                                                oninput="updatePatternScale(this.value)">
                                     </div>
                                 </div>
@@ -2306,10 +2306,22 @@ const colors = [
 ];
 
 const patterns = [
-    { name: 'Точки', css: 'radial-gradient(circle, currentColor 1px, transparent 1px)' },
-    { name: 'Линии', css: 'repeating-linear-gradient(0deg, currentColor, currentColor 1px, transparent 1px, transparent)' },
-    { name: 'Сетка', css: 'linear-gradient(currentColor 1px, transparent 1px), linear-gradient(90deg, currentColor 1px, transparent 1px)' },
-    { name: 'Вертикаль', css: 'repeating-linear-gradient(90deg, currentColor, currentColor 2px, transparent 2px, transparent)' },
+    { 
+        name: 'Точки', 
+        css: 'radial-gradient(circle, currentColor 1px, transparent 1px)' 
+    },
+    { 
+        name: 'Линии', 
+        css: 'repeating-linear-gradient(0deg, currentColor 0px, currentColor 1px, transparent 1px, transparent)' 
+    },
+    { 
+        name: 'Сетка', 
+        css: 'linear-gradient(currentColor 1px, transparent 1px), linear-gradient(90deg, currentColor 1px, transparent 1px)' 
+    },
+    { 
+        name: 'Вертикаль', 
+        css: 'repeating-linear-gradient(90deg, currentColor 0px, currentColor 2px, transparent 2px, transparent)' 
+    }
 ];
 
 const paddingMap = [10, 20, 30, 40, 50];
@@ -3722,47 +3734,56 @@ function drawPattern(ctx, width, height, slide) {
     ctx.globalAlpha = slide.patternOpacity;
     ctx.strokeStyle = slide.textColor;
     ctx.fillStyle = slide.textColor;
+    ctx.lineWidth = 1;
     
- if (pattern.name === 'Точки') {
-    const dotSize = scale * 0.05;
-    for (let x = 0; x < width; x += scale) {
+    if (pattern.name === 'Точки') {
+        // Размер точки = 1px (как в CSS)
+        const dotSize = 1;
+        const spacing = scale;
+        
+        for (let y = 0; y < height; y += spacing) {
+            for (let x = 0; x < width; x += spacing) {
+                ctx.beginPath();
+                ctx.arc(x, y, dotSize, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+        
+    } else if (pattern.name === 'Линии') {
+        // Горизонтальные линии толщиной 1px с интервалом scale
         for (let y = 0; y < height; y += scale) {
             ctx.beginPath();
-            ctx.arc(x, y, dotSize, 0, Math.PI * 2);
-            ctx.fill();
+            ctx.moveTo(0, y);
+            ctx.lineTo(width, y);
+            ctx.stroke();
+        }
+        
+    } else if (pattern.name === 'Сетка') {
+        // Вертикальные и горизонтальные линии толщиной 1px
+        for (let x = 0; x < width; x += scale) {
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, height);
+            ctx.stroke();
+        }
+        for (let y = 0; y < height; y += scale) {
+            ctx.beginPath();
+            ctx.moveTo(0, y);
+            ctx.lineTo(width, y);
+            ctx.stroke();
+        }
+        
+    } else if (pattern.name === 'Вертикаль') {
+        // Вертикальные линии толщиной 2px (как в CSS)
+        ctx.lineWidth = 2;
+        for (let x = 0; x < width; x += scale) {
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, height);
+            ctx.stroke();
         }
     }
-} else if (pattern.name === 'Линии') {
-    ctx.lineWidth = 1;
-    for (let y = 0; y < height; y += scale) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(width, y);
-        ctx.stroke();
-    }
-} else if (pattern.name === 'Сетка') {
-    ctx.lineWidth = 1;
-    for (let x = 0; x < width; x += scale) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, height);
-        ctx.stroke();
-    }
-    for (let y = 0; y < height; y += scale) {
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(width, y);
-        ctx.stroke();
-    }
-} else if (pattern.name === 'Вертикаль') {
-    ctx.lineWidth = 2;
-    for (let x = 0; x < width; x += scale) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, height);
-        ctx.stroke();
-    }
-}  
+    
     ctx.restore();
 }
 
@@ -3950,20 +3971,21 @@ function renderSlide() {
         bg.style.backgroundColor = slide.bgColor;
     }
 
-   if (slide.pattern !== null) {
+ if (slide.pattern !== null) {
     const patternData = patterns[slide.pattern];
     if (patternData && patternData.css) {
         pattern.style.backgroundImage = patternData.css;
         pattern.style.color = slide.textColor;
         pattern.style.opacity = slide.patternOpacity;
+        // ИСПРАВЛЕНИЕ: применяем scale для превью
         pattern.style.backgroundSize = `${slide.patternScale * scale}px ${slide.patternScale * scale}px`;
         pattern.style.display = 'block';
-        } else {
-            pattern.style.display = 'none';
-        }
     } else {
         pattern.style.display = 'none';
     }
+} else {
+    pattern.style.display = 'none';
+}
 
     if (slide.overlayEnabled) {
         overlay.style.display = 'block';
