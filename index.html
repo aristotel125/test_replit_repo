@@ -174,7 +174,7 @@
                                     
                                     <div class="slider-group">
                                         <label>Масштаб: <span id="scaleValue">20px</span></label>
-                                        <input type="range" class="slider" min="10" max="125" value="66" 
+                                        <input type="range" class="slider" min="25" max="125" value="66" 
                                                oninput="updatePatternScale(this.value)">
                                     </div>
                                 </div>
@@ -546,7 +546,7 @@
             <div class="gallery-loading">Загрузка...</div>
         </div>
         <div class="gallery-hint">
-            ???? Совет: долгий тап (зажмите) на картинке для быстрого сохранения<br>
+            💡 Совет: долгий тап (зажмите) на картинке для быстрого сохранения<br>
             или используйте кнопку "Скачать" под каждым слайдом
         </div>
     </div>
@@ -2180,7 +2180,8 @@
             touch-action: none; 
         }
     </style>
-     <script>
+    
+    <script>
 // Разрешаем клики внутри любых контейнеров контента модалки
 const CONTENT_SELECTORS = '.modal-content, .welcome-content, .modal__content, [data-modal-content]';
 
@@ -2219,7 +2220,7 @@ document.addEventListener('keydown', function(e) {
     sc.style.maxHeight = on ? sc.scrollHeight + 'px' : '0px';
     if (acc.classList.contains('open')) {
       acc.style.maxHeight = acc.scrollHeight + 'px';
-    }d
+    }
   });
 
   window.openAccordion = function(id){
@@ -3702,102 +3703,185 @@ function getExportDimensions() {
     return dimensions[currentRatio] || dimensions['4-5'];
 }
 
-async function slideToImage(slideIndex) {
-            // Ждём загрузки шрифтов
+        async function slideToImage(slideIndex) {
+    return new Promise(async (resolve, reject) => {
+        try {
+            // Проверяем наличие html2canvas
+            if (typeof html2canvas === 'undefined') {
+                throw new Error('html2canvas не загружен');
+            }
+
+            const slide = slides[slideIndex];
+            const dims = getExportDimensions();
+            
+            // Создаём временный контейнер для рендера
+            const tempContainer = document.createElement('div');
+            tempContainer.style.cssText = `
+                position: fixed;
+                left: -9999px;
+                top: 0;
+                width: ${dims.width}px;
+                height: ${dims.height}px;
+                background: ${slide.bgColor};
+                overflow: hidden;
+            `;
+            
+            // Копируем структуру слайда
+            tempContainer.innerHTML = `
+                <div class="slide-background" style="
+                    position: absolute;
+                    inset: 0;
+                    background-size: cover;
+                    background-position: center;
+                    ${slide.bgImage ? `background-image: url(${slide.bgImage});` : ''}
+                    ${!slide.bgImage ? `background-color: ${slide.bgColor};` : ''}
+                "></div>
+                
+                <div class="slide-pattern" style="
+                    position: absolute;
+                    inset: 0;
+                    ${slide.pattern !== null ? getPatternStyles(slide, dims.width) : 'display: none;'}
+                "></div>
+                
+                <div class="slide-overlay" style="
+                    position: absolute;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    ${slide.overlayEnabled ? `
+                        height: ${slide.overlayHeight}%;
+                        background-color: ${slide.overlayColor};
+                        opacity: ${slide.overlayOpacity};
+                    ` : 'display: none;'}
+                "></div>
+                
+                <div class="slide-content" style="
+                    position: relative;
+                    z-index: 1;
+                    height: 100%;
+                    display: flex;
+                    flex-direction: column;
+                    justify-content: ${getVerticalJustify(slide.contentAlignment?.vertical)};
+                    padding: ${slide.paddingTop}px ${slide.paddingRight}px ${slide.paddingBottom}px ${slide.paddingLeft}px;
+                ">
+                    ${!slide.noTitle && slide.title ? `
+                        <div class="slide-title" style="
+                            font-size: ${slide.titleSize}px;
+                            color: ${slide.titleColor || slide.textColor};
+                            font-family: '${slide.titleFont}', sans-serif;
+                            font-weight: ${slide.titleBold ? '700' : '400'};
+                            font-style: ${slide.titleItalic ? 'italic' : 'normal'};
+                            line-height: ${slide.titleLineHeight};
+                            text-align: ${slide.titleAlignment?.horizontal || 'center'};
+                            white-space: pre-wrap;
+                            word-break: break-word;
+                            margin-bottom: 53px;
+                            ${slide.textShadow ? `text-shadow: ${slide.shadowOffset}px ${slide.shadowOffset}px ${slide.shadowBlur}px ${slide.shadowColor};` : ''}
+                        ">${escapeHtml(slide.title)}</div>
+                    ` : ''}
+                    
+                    ${slide.text ? `
+                        <div class="slide-text" style="
+                            font-size: ${slide.textSize}px;
+                            color: ${slide.textColor};
+                            font-family: '${slide.textFont}', sans-serif;
+                            font-weight: ${slide.textBold ? '700' : '400'};
+                            font-style: ${slide.textItalic ? 'italic' : 'normal'};
+                            line-height: ${slide.textLineHeight};
+                            text-align: ${slide.textAlignment?.horizontal || 'left'};
+                            white-space: pre-wrap;
+                            word-break: break-word;
+                            ${slide.textShadow ? `text-shadow: ${slide.shadowOffset}px ${slide.shadowOffset}px ${slide.shadowBlur}px ${slide.shadowColor};` : ''}
+                        ">${escapeHtml(slide.text)}</div>
+                    ` : ''}
+                </div>
+            `;
+            
+            document.body.appendChild(tempContainer);
+            
+            // Ждём загрузки шрифтов (критично!)
             await document.fonts.ready;
             
-            return new Promise((resolve, reject) => {
-                const slide = slides[slideIndex];
-                const dims = getExportDimensions();
-
-                const dpr = 1;
-
-                // 1. Setup Canvas and Context
-                const canvas = document.createElement('canvas');
-                canvas.width = dims.width * dpr;
-                canvas.height = dims.height * dpr;
-                canvas.style.width = dims.width + 'px';
-                canvas.style.height = dims.height + 'px';
-
-                const ctx = canvas.getContext('2d', { 
-                    alpha: true,
-                    desynchronized: false,
-                    willReadFrequently: false
-                });
-                
-                ctx.setTransform(dpr, 0, 0, dpr, 0, 0); 
-                
-                ctx.imageSmoothingEnabled = true;
-                ctx.imageSmoothingQuality = 'high';
-
-                // 2. Drawing Functions
-                const drawSlideContent = () => {
-                    // 1. Draw Pattern (Must be drawn before content and overlay)
-                    if (slide.pattern !== null) {
-                        drawPattern(ctx, dims.width, dims.height, slide);
+            // Небольшая задержка для полного рендера
+            await new Promise(r => setTimeout(r, 100));
+            
+            // Рендерим через html2canvas
+            const canvas = await html2canvas(tempContainer, {
+                width: dims.width,
+                height: dims.height,
+                scale: 1,
+                useCORS: true,
+                allowTaint: true,
+                backgroundColor: slide.bgColor,
+                logging: false,
+                onclone: (clonedDoc) => {
+                    // Гарантируем, что клонированный документ видит шрифты
+                    const clonedContainer = clonedDoc.querySelector('div');
+                    if (clonedContainer) {
+                        clonedContainer.style.fontFamily = 'inherit';
                     }
-                    // 2. Draw Overlay
-                    if (slide.overlayEnabled) {
-                        drawOverlay(ctx, dims.width, dims.height, slide);
-                    }
-                    // 3. Draw Text (Content)
-                    drawText(ctx, dims.width, dims.height, slide); 
-                    
-                    // Resolve with the generated Blob
-                    canvas.toBlob((blob) => resolve(blob), 'image/png', 1.0);
-                };
-
-                const paintBackground = () => {
-                    ctx.fillStyle = slide.bgColor;
-                    ctx.fillRect(0, 0, dims.width, dims.height);
-                    drawSlideContent();
-                };
-
-                // 3. Handle Background Image Loading
-                if (slide.bgImage) {
-                    const img = new Image();
-                    img.crossOrigin = 'anonymous';
-                    
-                    img.onload = () => {
-                        const imgRatio = img.width / img.height;
-                        const canvasRatio = dims.width / dims.height;
-                        
-                        let drawWidth, drawHeight, offsetX, offsetY;
-                        
-                        // Logic for "object-fit: cover"
-                        if (imgRatio > canvasRatio) {
-                            // Image is wider than canvas ratio, fit by height
-                            drawHeight = dims.height;
-                            drawWidth = img.width * (dims.height / img.height);
-                            offsetX = (dims.width - drawWidth) / 2;
-                            offsetY = 0;
-                        } else {
-                            // Image is taller than canvas ratio, fit by width
-                            drawWidth = dims.width;
-                            drawHeight = img.height * (dims.width / img.width);
-                            offsetX = 0;
-                            offsetY = (dims.height - drawHeight) / 2;
-                        }
-                        
-                        ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
-                        drawSlideContent();
-                    };
-                    
-                    img.onerror = () => {
-                        console.warn('Не удалось загрузить фоновое изображение, используем цвет');
-                        paintBackground();
-                    };
-                    
-                    img.src = slide.bgImage;
-                } else {
-                    // 4. Handle Background Color
-                    paintBackground();
                 }
             });
+            
+            // Удаляем временный контейнер
+            document.body.removeChild(tempContainer);
+            
+            // Конвертируем canvas в blob
+            canvas.toBlob((blob) => {
+                if (blob) {
+                    resolve(blob);
+                } else {
+                    reject(new Error('Не удалось создать blob'));
+                }
+            }, 'image/png', 1.0);
+            
+        } catch (error) {
+            console.error('Ошибка в slideToImage:', error);
+            reject(error);
         }
+    });
+}
+
+// Вспомогательные функции
+function getPatternStyles(slide, width) {
+    const patternData = patterns[slide.pattern];
+    if (!patternData) return 'display: none;';
+    
+    const scale = slide.patternScale || 66;
+    const finalSize = patternData.baseSize * scale;
+    
+    let backgroundSize;
+    if (patternData.type === 'vertical-line') {
+        backgroundSize = `${finalSize}px 100%`;
+    } else if (patternData.type === 'horizontal-line') {
+        backgroundSize = `100% ${finalSize}px`;
+    } else {
+        backgroundSize = `${finalSize}px ${finalSize}px`;
+    }
+    
+    return `
+        display: block;
+        background-image: ${patternData.css};
+        color: ${slide.textColor};
+        opacity: ${slide.patternOpacity};
+        background-repeat: repeat;
+        background-size: ${backgroundSize};
+    `;
+}
+
+function getVerticalJustify(vertical) {
+    if (vertical === 'top') return 'flex-start';
+    if (vertical === 'bottom') return 'flex-end';
+    return 'center';
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
 
 function drawPattern(ctx, width, height, slide) {
-    // Предполагается, что 'patterns' и 'getExportDimensions' доступны в скоупе
     const patternData = patterns[slide.pattern];
     if (!patternData || !patternData.type || !patternData.baseSize) return;
 
@@ -3809,28 +3893,10 @@ function drawPattern(ctx, width, height, slide) {
     const userScale = slide.patternScale || 1.0;
     const finalTileSize = patternData.baseSize * userScale * resolutionScaleFactor;
 
-    // --- ИНТЕГРИРОВАННАЯ ЛОГИКА ЦВЕТА ---
-    const baseHexColor = slide.textColor || '#000000'; // Цвет текста
-    const alpha = slide.patternOpacity || 0.5; // Прозрачность
-
-    let hex = baseHexColor.startsWith('#') ? baseHexColor.slice(1) : baseHexColor;
-    let r = 0, g = 0, b = 0;
-
-    // Конвертация HEX в RGB компоненты
-    if (hex.length === 3) {
-        r = parseInt(hex[0] + hex[0], 16);
-        g = parseInt(hex[1] + hex[1], 16);
-        b = parseInt(hex[2] + hex[2], 16);
-    } else if (hex.length === 6) {
-        r = parseInt(hex.substring(0, 2), 16);
-        g = parseInt(hex.substring(2, 4), 16);
-        b = parseInt(hex.substring(4, 6), 16);
-    }
-
-    // 2. Устанавливаем финальный цвет узора в формате RGBA
-    // Это позволяет применить прозрачность (alpha) к любому HEX цвету.
-    const finalRgba = `rgba(${r}, ${g}, ${b}, ${alpha})`; 
-    // --- КОНЕЦ ЛОГИКИ ЦВЕТА ---
+    // 2. Устанавливаем цвет узора. 
+    // Поскольку логика контраста с getPatternFillStyle была удалена по запросу,
+    // используем фиксированный черный цвет с прозрачностью.
+    const finalRgba = `rgba(0, 0, 0, ${slide.patternOpacity || 0.5})`; 
 
     // 3. Создаем офф-скрин холст для узора (тайла)
     const offscreenCanvas = document.createElement('canvas');
@@ -3840,7 +3906,7 @@ function drawPattern(ctx, width, height, slide) {
     offscreenCanvas.height = finalTileSize;
     
     const pCtx = offscreenCanvas.getContext('2d');
-    pCtx.fillStyle = finalRgba; // Применяем цвет с прозрачностью
+    pCtx.fillStyle = finalRgba;
 
     // 4. Отрисовываем специфичный узор на офф-скрин холсте
     // Толщина линии также масштабируется в зависимости от разрешения
@@ -3868,6 +3934,19 @@ function drawPattern(ctx, width, height, slide) {
     const pattern = ctx.createPattern(offscreenCanvas, 'repeat');
     ctx.fillStyle = pattern;
     ctx.fillRect(0, 0, width, height);
+}
+
+function drawOverlay(ctx, width, height, slide) {
+    if (!slide.overlayEnabled) return;
+    
+    const overlayHeightPx = (slide.overlayHeight / 100) * height;
+    const overlayY = height - overlayHeightPx;
+    
+    ctx.save();
+    ctx.globalAlpha = slide.overlayOpacity;
+    ctx.fillStyle = slide.overlayColor;
+    ctx.fillRect(0, overlayY, width, overlayHeightPx);
+    ctx.restore();
 }
 
 function drawText(ctx, width, height, slide) {
