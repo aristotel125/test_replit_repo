@@ -115,7 +115,7 @@
                     </label>
                 </div>
 
-               <div class="pattern-section" style="display: none;">
+                <div class="pattern-section">
                     <div class="toggle-section">
                         <div class="toggle-header" onclick="togglePatternSection()">
                             <span style="font-weight: 600;">Добавить узор</span>
@@ -126,7 +126,39 @@
                         </div>
                         <div class="advanced-settings" id="patternSettings">
                             <div class="section-title">ВЫБОР УЗОРА</div>
-                            <div class="pattern-grid" id="patternGrid"></div>
+                            <div class="pattern-grid" id="patternGrid">
+    <div class="pattern-option" onclick="selectPattern(0)">
+        <div class="pattern-preview" 
+             style="background-image: radial-gradient(circle, currentColor 1px, transparent 1px); 
+                    color: #000; 
+                    /* ДОБАВЛЕНО */
+                    background-size: 10px 10px;"></div>
+    </div>
+    
+    <div class="pattern-option" onclick="selectPattern(1)">
+        <div class="pattern-preview" 
+             style="background-image: repeating-linear-gradient(0deg, currentColor 0px, currentColor 1px, transparent 1px, transparent); 
+                    color: #000; 
+                    /* ДОБАВЛЕНО */
+                    background-size: 100% 2px;"></div>
+    </div>
+    
+    <div class="pattern-option" onclick="selectPattern(2)">
+        <div class="pattern-preview" 
+             style="background-image: linear-gradient(currentColor 1px, transparent 1px), linear-gradient(90deg, currentColor 1px, transparent 1px); 
+                    color: #000; 
+                    /* ДОБАВЛЕНО */
+                    background-size: 10px 10px;"></div>
+    </div>
+    
+    <div class="pattern-option" onclick="selectPattern(3)">
+        <div class="pattern-preview" 
+             style="background-image: repeating-linear-gradient(90deg, currentColor 0px, currentColor 2px, transparent 2px, transparent); 
+                    color: #000; 
+                    /* ДОБАВЛЕНО */
+                    background-size: 4px 100%;"></div>
+    </div>
+</div>
                             
                             <div class="advanced-settings-toggle">
                                 <div class="advanced-settings-header" onclick="toggleAdvancedSettings()">
@@ -2311,24 +2343,37 @@ const colors = [
     '#9C6644', '#7D5A50', '#556B58', '#5C728A'
 ];
 
+// Новый, исправленный массив PATTERNS
 const patterns = [
-    { 
-        name: 'Точки', 
-        css: 'radial-gradient(circle, currentColor 1px, transparent 1px)' 
-    },
-    { 
-        name: 'Линии', 
-        css: 'repeating-linear-gradient(0deg, currentColor 0px, currentColor 1px, transparent 1px, transparent)' 
-    },
-    { 
-        name: 'Сетка', 
-        css: 'linear-gradient(currentColor 1px, transparent 1px), linear-gradient(90deg, currentColor 1px, transparent 1px)' 
-    },
-    { 
-        name: 'Вертикаль', 
-        css: 'repeating-linear-gradient(90deg, currentColor 0px, currentColor 2px, transparent 2px, transparent)' 
-    }
-];
+            { 
+                id: 0, 
+                name: 'Точки', 
+                css: 'radial-gradient(circle, currentColor 1px, transparent 1px)',
+                baseSize: 2, // Базовый размер тайла в пикселях (10x10)
+                type: 'dot' 
+            },
+            { 
+                id: 1, 
+                name: 'Вертикаль', 
+                css: 'repeating-linear-gradient(90deg, currentColor 0px, currentColor 2px, transparent 2px, transparent)',
+                baseSize: 2, // Базовый размер тайла (4px = 2px линия + 2px прозрачность)
+                type: 'vertical-line'
+            },
+            { 
+                id: 2, 
+                name: 'Сетка', 
+                css: 'linear-gradient(currentColor 1px, transparent 1px), linear-gradient(90deg, currentColor 1px, transparent 1px)',
+                baseSize: 5, // Базовый размер тайла в пикселях (15x15)
+                type: 'grid'
+            },
+            { 
+                id: 3, // НОВЫЙ УЗОР
+                name: 'Горизонталь', 
+                css: 'repeating-linear-gradient(0deg, currentColor 0px, currentColor 2px, transparent 2px, transparent)',
+                baseSize: 2, // Базовый размер тайла (4px = 2px линия + 2px прозрачность)
+                type: 'horizontal-line'
+            }
+        ];
 
 const paddingMap = [10, 20, 30, 40, 50];
 
@@ -3659,143 +3704,152 @@ function getExportDimensions() {
 }
 
 async function slideToImage(slideIndex) {
-  // Ждём загрузки шрифтов
-  await document.fonts.ready;
-  
-  return new Promise((resolve, reject) => {
-    const slide = slides[slideIndex];
-    const dims = getExportDimensions();
-    const dpr = 1;  // Фиксированный DPR для точного совпадения
+            // Ждём загрузки шрифтов
+            await document.fonts.ready;
+            
+            return new Promise((resolve, reject) => {
+                const slide = slides[slideIndex];
+                const dims = getExportDimensions();
 
-    const canvas = document.createElement('canvas');
-    canvas.width = dims.width;
-    canvas.height = dims.height;
-    canvas.style.width = dims.width + 'px';
-    canvas.style.height = dims.height + 'px';
+                const dpr = 1;
 
-    const ctx = canvas.getContext('2d', { 
-      alpha: true,
-      desynchronized: false,
-      willReadFrequently: false
-    });
-    ctx.setTransform(1, 0, 0, 1, 0, 0);  
-    ctx.imageSmoothingEnabled = true;
-    ctx.imageSmoothingQuality = 'high';
+                // 1. Setup Canvas and Context
+                const canvas = document.createElement('canvas');
+                canvas.width = dims.width * dpr;
+                canvas.height = dims.height * dpr;
+                canvas.style.width = dims.width + 'px';
+                canvas.style.height = dims.height + 'px';
 
-    const paintBackground = () => {
-      ctx.fillStyle = slide.bgColor;
-      ctx.fillRect(0, 0, dims.width, dims.height);
-      drawSlideContent();
-    };
+                const ctx = canvas.getContext('2d', { 
+                    alpha: true,
+                    desynchronized: false,
+                    willReadFrequently: false
+                });
+                
+                ctx.setTransform(dpr, 0, 0, dpr, 0, 0); 
+                
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
 
-    const drawSlideContent = () => {
-      if (slide.pattern !== null) {
-        drawPattern(ctx, dims.width, dims.height, slide);
-      }
-      if (slide.overlayEnabled) {
-        drawOverlay(ctx, dims.width, dims.height, slide);
-      }
-      drawText(ctx, dims.width, dims.height, slide);
-      canvas.toBlob((blob) => resolve(blob), 'image/png', 1.0);
-    };
+                // 2. Drawing Functions
+                const drawSlideContent = () => {
+                    // 1. Draw Pattern (Must be drawn before content and overlay)
+                    if (slide.pattern !== null) {
+                        drawPattern(ctx, dims.width, dims.height, slide);
+                    }
+                    // 2. Draw Overlay
+                    if (slide.overlayEnabled) {
+                        drawOverlay(ctx, dims.width, dims.height, slide);
+                    }
+                    // 3. Draw Text (Content)
+                    drawText(ctx, dims.width, dims.height, slide); 
+                    
+                    // Resolve with the generated Blob
+                    canvas.toBlob((blob) => resolve(blob), 'image/png', 1.0);
+                };
 
-    if (slide.bgImage) {
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      
-      img.onload = () => {
-        const imgRatio = img.width / img.height;
-        const canvasRatio = dims.width / dims.height;
-        
-        let drawWidth, drawHeight, offsetX, offsetY;
-        
-        if (imgRatio > canvasRatio) {
-          drawHeight = dims.height;
-          drawWidth = img.width * (dims.height / img.height);
-          offsetX = (dims.width - drawWidth) / 2;
-          offsetY = 0;
-        } else {
-          drawWidth = dims.width;
-          drawHeight = img.height * (dims.width / img.width);
-          offsetX = 0;
-          offsetY = (dims.height - drawHeight) / 2;
+                const paintBackground = () => {
+                    ctx.fillStyle = slide.bgColor;
+                    ctx.fillRect(0, 0, dims.width, dims.height);
+                    drawSlideContent();
+                };
+
+                // 3. Handle Background Image Loading
+                if (slide.bgImage) {
+                    const img = new Image();
+                    img.crossOrigin = 'anonymous';
+                    
+                    img.onload = () => {
+                        const imgRatio = img.width / img.height;
+                        const canvasRatio = dims.width / dims.height;
+                        
+                        let drawWidth, drawHeight, offsetX, offsetY;
+                        
+                        // Logic for "object-fit: cover"
+                        if (imgRatio > canvasRatio) {
+                            // Image is wider than canvas ratio, fit by height
+                            drawHeight = dims.height;
+                            drawWidth = img.width * (dims.height / img.height);
+                            offsetX = (dims.width - drawWidth) / 2;
+                            offsetY = 0;
+                        } else {
+                            // Image is taller than canvas ratio, fit by width
+                            drawWidth = dims.width;
+                            drawHeight = img.height * (dims.width / img.width);
+                            offsetX = 0;
+                            offsetY = (dims.height - drawHeight) / 2;
+                        }
+                        
+                        ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
+                        drawSlideContent();
+                    };
+                    
+                    img.onerror = () => {
+                        console.warn('Не удалось загрузить фоновое изображение, используем цвет');
+                        paintBackground();
+                    };
+                    
+                    img.src = slide.bgImage;
+                } else {
+                    // 4. Handle Background Color
+                    paintBackground();
+                }
+            });
         }
-        
-        ctx.drawImage(img, offsetX, offsetY, drawWidth, drawHeight);
-        drawSlideContent();
-      };
-      
-      img.onerror = () => {
-        console.warn('Не удалось загрузить фоновое изображение, используем цвет');
-        paintBackground();
-      };
-      
-      img.src = slide.bgImage;
-    } else {
-      paintBackground();
-    }
-  });
-}
 
 function drawPattern(ctx, width, height, slide) {
-    const pattern = patterns[slide.pattern];
-    const scale = slide.patternScale;
+    const patternData = patterns[slide.pattern];
+    if (!patternData || !patternData.type || !patternData.baseSize) return;
+
+    // Получаем ширину экспорта для расчета масштабирования разрешения
+    const { width: exportWidth } = getExportDimensions();
+    const resolutionScaleFactor = exportWidth / 1080; 
+
+    // 1. Расчет размера тайла (BaseSize * UserScale * ResolutionScaleFactor)
+    const userScale = slide.patternScale || 1.0;
+    const finalTileSize = patternData.baseSize * userScale * resolutionScaleFactor;
+
+    // 2. Устанавливаем цвет узора. 
+    // Поскольку логика контраста с getPatternFillStyle была удалена по запросу,
+    // используем фиксированный черный цвет с прозрачностью.
+    const finalRgba = `rgba(0, 0, 0, ${slide.patternOpacity || 0.5})`; 
+
+    // 3. Создаем офф-скрин холст для узора (тайла)
+    const offscreenCanvas = document.createElement('canvas');
     
-    // Масштабируем толщину линий и размер точек пропорционально canvas
-    const lineScale = width / 1080; // Для 1080px это будет 1.0
+    // Размеры холста для узора
+    offscreenCanvas.width = finalTileSize;
+    offscreenCanvas.height = finalTileSize;
     
-    ctx.save();
-    ctx.globalAlpha = slide.patternOpacity;
-    ctx.strokeStyle = slide.textColor;
-    ctx.fillStyle = slide.textColor;
-    
-    if (pattern.name === 'Точки') {
-        const dotSize = 1 * lineScale;
-        const spacing = scale;
-        
-        for (let y = 0; y < height; y += spacing) {
-            for (let x = 0; x < width; x += spacing) {
-                ctx.beginPath();
-                ctx.arc(x, y, dotSize, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        }
-        
-    } else if (pattern.name === 'Линии') {
-        ctx.lineWidth = 1 * lineScale;
-        for (let y = 0; y < height; y += scale) {
-            ctx.beginPath();
-            ctx.moveTo(0, y);
-            ctx.lineTo(width, y);
-            ctx.stroke();
-        }
-        
-    } else if (pattern.name === 'Сетка') {
-        ctx.lineWidth = 1 * lineScale;
-        for (let x = 0; x < width; x += scale) {
-            ctx.beginPath();
-            ctx.moveTo(x, 0);
-            ctx.lineTo(x, height);
-            ctx.stroke();
-        }
-        for (let y = 0; y < height; y += scale) {
-            ctx.beginPath();
-            ctx.moveTo(0, y);
-            ctx.lineTo(width, y);
-            ctx.stroke();
-        }
-        
-    } else if (pattern.name === 'Вертикаль') {
-        ctx.lineWidth = 2 * lineScale;
-        for (let x = 0; x < width; x += scale) {
-            ctx.beginPath();
-            ctx.moveTo(x, 0);
-            ctx.lineTo(x, height);
-            ctx.stroke();
-        }
+    const pCtx = offscreenCanvas.getContext('2d');
+    pCtx.fillStyle = finalRgba;
+
+    // 4. Отрисовываем специфичный узор на офф-скрин холсте
+    // Толщина линии также масштабируется в зависимости от разрешения
+    const lineThickness = 2 * resolutionScaleFactor; 
+
+    if (patternData.type === 'dot') {
+        const radius = lineThickness / 2;
+        pCtx.beginPath();
+        pCtx.arc(finalTileSize / 2, finalTileSize / 2, radius, 0, Math.PI * 2);
+        pCtx.fill();
+    } else if (patternData.type === 'vertical-line') {
+        // Вертикальная линия толщиной lineThickness
+        pCtx.fillRect(0, 0, lineThickness, finalTileSize);
+    } else if (patternData.type === 'horizontal-line') {
+        // Горизонтальная линия толщиной lineThickness
+        pCtx.fillRect(0, 0, finalTileSize, lineThickness);
+    } else if (patternData.type === 'grid') {
+        // Вертикальная линия
+        pCtx.fillRect(0, 0, lineThickness, finalTileSize);
+        // Горизонтальная линия
+        pCtx.fillRect(0, 0, finalTileSize, lineThickness);
     }
-    
-    ctx.restore();
+
+    // 5. Создаем и применяем паттерн к основному холсту
+    const pattern = ctx.createPattern(offscreenCanvas, 'repeat');
+    ctx.fillStyle = pattern;
+    ctx.fillRect(0, 0, width, height);
 }
 
 function drawOverlay(ctx, width, height, slide) {
@@ -3986,23 +4040,31 @@ function renderSlide() {
     }
 
 if (slide.pattern !== null) {
-    const patternData = patterns[slide.pattern];
-    if (patternData && patternData.css) {
-        pattern.style.backgroundImage = patternData.css;
-        pattern.style.color = slide.textColor;
-        pattern.style.opacity = slide.patternOpacity;
-        
-        // Пересчитываем scale для актуального значения
-        const currentScale = canvas.offsetWidth / 1080;
-        const scaledPatternSize = slide.patternScale * currentScale;
-        pattern.style.backgroundSize = `${scaledPatternSize}px ${scaledPatternSize}px`;
-        pattern.style.display = 'block';
-    } else {
-        pattern.style.display = 'none';
-    }
-} else {
-    pattern.style.display = 'none';
-}
+                const patternData = patterns[slide.pattern];
+                
+                if (patternData && patternData.css && patternData.baseSize) {
+                    pattern.style.backgroundImage = patternData.css;
+                    pattern.style.color = slide.textColor;
+                    pattern.style.opacity = slide.patternOpacity;
+                    
+                    // Расчет размера тайла с учетом пользовательского масштаба и масштаба DOM-превью
+                    const finalSize = patternData.baseSize * slide.patternScale * scale; 
+                    
+                    if (patternData.type === 'vertical-line') {
+                        pattern.style.backgroundSize = `${finalSize}px 100%`;
+                    } else if (patternData.type === 'horizontal-line') {
+                        pattern.style.backgroundSize = `100% ${finalSize}px`;
+                    } else {
+                        pattern.style.backgroundSize = `${finalSize}px ${finalSize}px`;
+                    }
+                    
+                    pattern.style.display = 'block';
+                } else {
+                    pattern.style.display = 'none';
+                }
+            } else {
+                pattern.style.display = 'none';
+            }
 
     if (slide.overlayEnabled) {
         overlay.style.display = 'block';
